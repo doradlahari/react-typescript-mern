@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-image: url("../../assets/bg-image.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.login-form-styles {
+  background-color: #fff;
+  padding: 5% !important;
+  border-radius: 10px;
+  opacity: 0.8;
+}
