@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const loginUserDetails = require("./login");
 const createUserDetails = require('./signup')
 const app = express();
+const middleware = require('./middleware')
 const jwt = require('jsonwebtoken')
 app.use(express.json()); // mididle ware
 
@@ -34,6 +35,7 @@ app.post("/loginuser", async (req, res) => {
     try {
         const { email } = req.body;
         const { password } = req.body;
+        const loggedInUserData = new loginUserDetails({ email, password });
         let exist = await createUserDetails.findOne({ email: email })
         if (!exist) {
             return res.status(400).send("user not found")
@@ -52,6 +54,8 @@ app.post("/loginuser", async (req, res) => {
                 return res.json({ token })
             }
         )
+        await loggedInUserData.save();
+        res.status(200).send("successfully loggedin!")
     } catch (err) {
         console.log(err);
         return res.status(500).send("internal server error")
@@ -61,7 +65,11 @@ app.post("/loginuser", async (req, res) => {
 
 app.get("/myprofile", middleware, async (req, res) => {
     try {
-
+        let exist = await createUserDetails.findById(req.user.id)
+        if (!exist) {
+            return res.status(400).send('user not found')
+        }
+        res.json(exist)
     }
     catch (err) {
         console.log(err)
