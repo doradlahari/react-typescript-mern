@@ -10,10 +10,12 @@ app.use(express.json()); // mididle ware
 app.use(cors({ origin: '*' }));
 const nodemailer = require('nodemailer');
 mongoose
-    .connect("mongodb+srv://haridevworld2022:merntypescript@cluster0.zx2nmhm.mongodb.net/userdata", {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
+    .connect("mongodb+srv://haridevworld2022:merntypescriptapi@cluster0.firewrq.mongodb.net/userdata",
+        // {
+        //     useNewUrlParser: true,
+        //     useUnifiedTopology: true,
+        // }
+    )
     .then(() => {
         console.log("DB connection successful");
     })
