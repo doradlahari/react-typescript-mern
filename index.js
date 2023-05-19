@@ -113,7 +113,7 @@ app.get("/myprofile", middleware, async (req, res) => {
     }
     catch (err) {
         console.log(err)
-        return res.status(500).send('internal server error')
+        return res.status(500).send('internal server error!')
     }
 })
 
