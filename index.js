@@ -98,7 +98,7 @@ app.post("/loginuser", async (req, res) => {
         res.status(200).send("successfully loggedin!")
     } catch (err) {
         console.log(err);
-        return res.status(500).send("internal server error")
+        return res.status(500).send("internal server error!")
     }
 });
 
