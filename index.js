@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const loginUserDetails = require("./login");
 const createUserDetails = require('./signup')
 const app = express();
+const generateOTPValue = require('./otp/otp')
+const resetPassword = require('./resetpassword/resetpassword')
 const middleware = require('./middleware')
 const jwt = require('jsonwebtoken')
 const cors = require('cors')
@@ -67,6 +69,21 @@ app.get('/videos/:filename', (req, res) => {
     }
 })
 
+
+// otp method 
+function generateOTP() {
+    var characters = "0123456789";
+    var otp = "";
+    for (var i = 0; i < 6; i++) {
+        var randomIndex = Math.floor(Math.random() * characters.length);
+        otp += characters.charAt(randomIndex);
+    }
+    return otp;
+}
+
+// Generate OTP
+var otp = generateOTP();
+
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -79,25 +96,33 @@ const transporter = nodemailer.createTransport({
 });
 
 // Function to send welcome email
-const sendWelcomeEmail = (email) => {
+const sendWelcomeEmail = async (email) => {
+
+    // saving otp in to DB
+    const storeOtp = new generateOTPValue({ otp: otp, email: email });
+    await storeOtp.save();
     const mailOptions = {
         from: 'haridevworld2022@gmail.com',
         to: email,
         subject: 'Welcome to Our Application',
-        text: 'Thank you for registering with our application. We are excited to have you on board!',
+        text: `Thank you for registering with our application. We are excited to have you on board! Here is your OTP: ${otp}`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
             console.error('Error sending welcome email:', error);
         } else {
-            console.log('Welcome email sent:', info.response);
             res.status(200).send(info.response)
+        }
+        let exist = generateOTPValue.findOne({ otp: otp })
+        if (!exist) {
+            return res.send('invalid otp')
+        } else {
+            res.status(200).send(`otp sent sucessfully`)
+            return res.send('valid otp')
         }
     });
 };
-
-
 
 app.get("/", (req, res) => {
     res.send("Hello hari");
@@ -146,7 +171,7 @@ app.post("/loginuser", async (req, res) => {
     }
 });
 
-
+// protected route
 app.get("/myprofile", middleware, async (req, res) => {
     try {
         let exist = await createUserDetails.findById(req.user.id)
@@ -161,6 +186,7 @@ app.get("/myprofile", middleware, async (req, res) => {
     }
 })
 
+// signup method
 app.post("/createuser", async (req, res) => {
     const { firstName } = req.body;
     const { lastName } = req.body;
@@ -170,6 +196,7 @@ app.post("/createuser", async (req, res) => {
     const { conformPassword } = req.body;
     try {
         const newUserData = new createUserDetails({ firstName, lastName, email, mobileNumber, password, conformPassword });
+        // validating email for exists and non exists
         let exist = await createUserDetails.findOne({ email: email })
         if (exist) {
             return res.send('user alredy exists')
@@ -178,15 +205,45 @@ app.post("/createuser", async (req, res) => {
             return res.send('password mismatch')
         }
         await newUserData.save();
-        // res.status(200).send("registration sucessfull!")
         // Send welcome email
         sendWelcomeEmail(email);
-        res.status(200).send(`Hello, ${firstName} your registration sucessfull! and you have received an email to this email ${email}`)
+        res.status(200).send(`registration sucessfull! ${otp}`)
     } catch (err) {
-        console.log(err);
         return res.status(500).send("internal server error!")
     }
 });
 
+// otp validation method
+app.post('/checkotp', async (req, res) => {
+    const { otp } = req.body;
+    try {
+        // validating email for exists and non exists
+        let exist = await generateOTPValue.findOne({ otp: otp })
+        if (!exist) {
+            return res.send('invalid otp')
+        } else {
+            res.status(200).send(`valid otp`)
+            return res.send('valid otp')
+        }
+    } catch (err) {
+        return res.status(500).send("internal server error!")
+    }
+})
+
+// resetpassword method
+app.post("/resetpassword", async (req, res) => {
+    const { email } = req.body
+    const { password } = req.body
+    const { conformPassword } = req.body
+    const resetPasswordData = new resetPassword({ password, conformPassword })
+    let exist = await createUserDetails.findOne({ email: email })
+    if (exist) {
+        return res.send('user alredy exists')
+    }
+    if (password !== conformPassword) {
+        return res.send('password mismatch')
+    }
+    await newUserData.save();
+})
 app.listen(5000, () => console.log("server running -> auth + video streaming............"));
 module.exports = app
