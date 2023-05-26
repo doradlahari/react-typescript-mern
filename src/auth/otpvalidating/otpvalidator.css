@@ -1,0 +1,14 @@
+.customized-input-box {
+    width: 40px !important;
+    justify-content: center;
+    height: 50px !important;
+    background: #f0f0f0 !important;
+    border-radius: 10px !important;
+    margin: 3px !important;
+    text-align: center !important;
+    font-family: 'Roboto', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 20px;
+    color: black;
+}

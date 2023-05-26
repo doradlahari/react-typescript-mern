@@ -43,8 +43,7 @@ const SignupForm = () => {
         } else {
           console.log(res.data);
           message.success("registration sucessfull");
-          alert("click to login");
-          navigate("/");
+          navigate("/verification");
         }
       })
       .catch(() => {
