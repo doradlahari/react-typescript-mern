@@ -5,6 +5,7 @@ const createUserDetails = require('./signup')
 const app = express();
 const generateOTPValue = require('./otp/otp')
 const resetPassword = require('./resetpassword/resetpassword')
+const checkuser = require('./forgotpassword/forgotpassword')
 const middleware = require('./middleware')
 const jwt = require('jsonwebtoken')
 const cors = require('cors')
@@ -97,7 +98,6 @@ const transporter = nodemailer.createTransport({
 
 // Function to send welcome email
 const sendWelcomeEmail = async (email) => {
-
     // saving otp in to DB
     const storeOtp = new generateOTPValue({ otp: otp, email: email });
     await storeOtp.save();
@@ -120,6 +120,24 @@ const sendWelcomeEmail = async (email) => {
         } else {
             res.status(200).send(`otp sent sucessfully`)
             return res.send('valid otp')
+        }
+    });
+};
+
+// Function to send welcome email
+const resetPasswordLink = async (email) => {
+    const mailOptions = {
+        from: 'haridevworld2022@gmail.com',
+        to: email,
+        subject: 'Welcome to Our Application',
+        text: `use this link to reset password http://mern-typescript.s3-website.ap-south-1.amazonaws.com/resetpassword`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('Error sending welcome email:', error);
+        } else {
+            res.status(200).send(info.response)
         }
     });
 };
@@ -230,20 +248,43 @@ app.post('/checkotp', async (req, res) => {
     }
 })
 
-// resetpassword method
-app.post("/resetpassword", async (req, res) => {
-    const { email } = req.body
-    const { password } = req.body
-    const { conformPassword } = req.body
-    const resetPasswordData = new resetPassword({ password, conformPassword })
-    let exist = await createUserDetails.findOne({ email: email })
-    if (exist) {
-        return res.send('user alredy exists')
+
+// forgotpassword method 
+app.post('/forgotpassword', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const userdetails = new checkuser({ email: email });
+        let exist = await createUserDetails.findOne({ email: email })
+        if (!exist) {
+            return res.send("user not found")
+        } else {
+            res.status(200).send("valid user and sent url")
+            await userdetails.save();
+            resetPasswordLink(email)
+        }
+    } catch (err) {
+        console.log(err)
+        return res.status(500).send('internal server error')
     }
-    if (password !== conformPassword) {
-        return res.send('password mismatch')
-    }
-    await newUserData.save();
 })
+
+// reset password method 
+app.post("/resetpassword", async (req, res) => {
+    try {
+        const { email } = req.body
+        const { password } = req.body;
+        const { conformPassword } = req.body;
+        const newUserData = new resetPassword({ email, password, conformPassword });
+        if (password !== conformPassword) {
+            return res.status(200).send('password mismatch')
+        } else {
+            res.status(200).send(`password resetted sucessfully`)
+            await newUserData.save();
+        }
+    } catch (err) {
+        return res.status(500).send("internal server error!")
+    }
+})
+
 app.listen(5000, () => console.log("server running -> auth + video streaming............"));
 module.exports = app

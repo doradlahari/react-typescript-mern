@@ -9,7 +9,7 @@ const resetPassword = new mongoose.Schema({
         type: String,
         required: true
     },
-    conformpassword: {
+    conformPassword: {
         type: String,
         required: true
     }
