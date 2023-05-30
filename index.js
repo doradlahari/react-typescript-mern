@@ -157,37 +157,41 @@ app.get("/signup", (req, res) => {
 //post method
 app.post("/loginuser", async (req, res) => {
     try {
-        const { email } = req.body;
-        const { password } = req.body;
+        const { email, password } = req.body;
         const loggedInUserData = new loginUserDetails({ email, password });
-        let exist = await createUserDetails.findOne({ email: email })
+
+        let exist = await createUserDetails.findOne({ email: email });
         if (!exist) {
-            return res.send("user not found")
+            return res.send("User not found");
         }
         if (exist.password !== password) {
-            return res.send("invalid credentails")
+            return res.send("Invalid credentials");
         }
+
+        await loggedInUserData.save();
+
         let payload = {
             user: {
-                id: exist.id
+                id: loggedInUserData._id
             }
-        }
-        // Set the token in the browser headers
+        };
 
-        jwt.sign(payload, "jwtSecret", { expiresIn: 3600000 },
-            (err, token) => {
-                if (err) throw err;
-                return res.json({ token })
-            }
-        )
-        await loggedInUserData.save();
-        res.setHeader('Authorization', `Bearer ${token}`);
-        res.status(200).send("successfully loggedin!")
+        // Generate the token
+        jwt.sign(payload, "jwtSecret", { expiresIn: 3600000 }, (err, token) => {
+            if (err) throw err;
+
+            // Include the token and ID in the response
+            res.json({ token: token, id: loggedInUserData._id });
+        });
     } catch (err) {
         console.log(err);
-        return res.status(500).send("internal server error")
+        return res.status(500).send("Internal server error");
     }
 });
+
+
+
+
 
 // protected route
 app.get("/myprofile", middleware, async (req, res) => {
@@ -260,7 +264,7 @@ app.post('/forgotpassword', async (req, res) => {
         } else {
             res.status(200).send("valid user and sent url")
             await userdetails.save();
-            resetPasswordLink(email)
+            resetPasswordLink(email, id)
         }
     } catch (err) {
         console.log(err)
@@ -277,7 +281,7 @@ app.put("/resetpassword/:id", async (req, res) => {
         // Check if user exists
         let existingUser = await createUserDetails.findById(id);
         if (!existingUser) {
-            return res.send("User not found");
+            return res.send("user not found");
         }
 
         // Check if password and confirmPassword match
