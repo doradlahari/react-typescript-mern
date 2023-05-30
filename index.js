@@ -211,15 +211,15 @@ app.post("/createuser", async (req, res) => {
     const { email } = req.body;
     const { mobileNumber } = req.body;
     const { password } = req.body;
-    const { conformPassword } = req.body;
+    const { confirmPassword } = req.body;
     try {
-        const newUserData = new createUserDetails({ firstName, lastName, email, mobileNumber, password, conformPassword });
+        const newUserData = new createUserDetails({ firstName, lastName, email, mobileNumber, password, confirmPassword });
         // validating email for exists and non exists
         let exist = await createUserDetails.findOne({ email: email })
         if (exist) {
             return res.send('user alredy exists')
         }
-        if (password !== conformPassword) {
+        if (password !== confirmPassword) {
             return res.send('password mismatch')
         }
         await newUserData.save();
@@ -269,22 +269,33 @@ app.post('/forgotpassword', async (req, res) => {
 })
 
 // reset password method 
-app.post("/resetpassword", async (req, res) => {
+app.put("/resetpassword/:id", async (req, res) => {
     try {
-        const { email } = req.body
-        const { password } = req.body;
-        const { conformPassword } = req.body;
-        const newUserData = new resetPassword({ email, password, conformPassword });
-        if (password !== conformPassword) {
-            return res.status(200).send('password mismatch')
-        } else {
-            res.status(200).send(`password resetted sucessfully`)
-            await newUserData.save();
+        const { id } = req.params;
+        const { password, confirmPassword } = req.body;
+
+        // Check if user exists
+        let existingUser = await createUserDetails.findById(id);
+        if (!existingUser) {
+            return res.send("User not found");
         }
+
+        // Check if password and confirmPassword match
+        if (password !== confirmPassword) {
+            return res.send("Password mismatch");
+        }
+
+        // Update the password for the existing user
+        existingUser.password = password;
+        existingUser.confirmPassword = confirmPassword;
+        await existingUser.save();
+
+        return res.status(200).send("Password reset successfully");
     } catch (err) {
-        return res.status(500).send("internal server error!")
+        return res.status(500).send("Internal server error!");
     }
-})
+});
+
 
 app.listen(5000, () => console.log("server running -> auth + video streaming............"));
 module.exports = app

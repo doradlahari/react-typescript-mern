@@ -22,7 +22,7 @@ const signupDetails = mongoose.Schema({
         type: String,
         required: true,
     },
-    conformPassword: {
+    confirmPassword: {
         type: String,
         required: true,
     },
