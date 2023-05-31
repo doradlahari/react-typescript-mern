@@ -231,7 +231,7 @@ app.post("/createuser", async (req, res) => {
         // Send welcome email
         sendWelcomeEmail(email, userId);
 
-        res.status(200).json({ message: 'Registration successful!', userId: userId });
+        res.status(200).json({ message: 'Registration successful!', userId: userId, otp: otp });
     } catch (err) {
         return res.status(500).send('Internal server error!');
     }
@@ -247,7 +247,7 @@ app.post('/checkotp', async (req, res) => {
         if (!exist) {
             return res.send('Invalid OTP');
         } else {
-            res.status(200).send('Valid OTP');
+            res.status(200).json({ message: "Account Verification Successfull" })
         }
     } catch (err) {
         console.log(err);
