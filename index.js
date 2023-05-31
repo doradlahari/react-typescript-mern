@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const fs = require('fs');
 app.use(express.json()); // middleware
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: '*', credentials: true }));
 const nodemailer = require('nodemailer');
 
 mongoose
