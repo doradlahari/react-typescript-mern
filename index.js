@@ -10,9 +10,15 @@ const middleware = require('./middleware');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const fs = require('fs');
+const Grid = require('gridfs-stream');
 app.use(express.json()); // middleware
+const multer = require('multer');
+const Tesseract = require('tesseract.js');
 app.use(cors({ origin: '*', credentials: true }));
 const nodemailer = require('nodemailer');
+const Image = require('./textfromimage/imagescheema'); // Import the image schema
+const https = require('https');
+const Deepgram = require('deepgram');
 
 mongoose
     .connect("mongodb+srv://haridevworld2022:merntypescriptapi@cluster0.firewrq.mongodb.net/userdata", {
@@ -298,6 +304,118 @@ app.put("/resetpassword/:id", async (req, res) => {
         return res.status(500).send("Internal server error");
     }
 });
+
+
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: './uploads', // Set the destination folder to store uploaded files
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    },
+});
+
+const upload = multer({ storage: storage });
+
+// Create GridFS Bucket
+let gfs;
+mongoose.connection.once('open', () => {
+    gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads',
+    });
+});
+
+// Set up the routes
+app.post('/upload', upload.array('image', 10), (req, res) => {
+    const files = req.files;
+
+    if (!files) {
+        res.status(400).send('No files were uploaded.');
+        return;
+    }
+
+    const responses = []; // Array to store the JSON responses
+
+    // Process each uploaded file
+    files.forEach((file) => {
+        const imagePath = file.path;
+        const filename = file.filename;
+
+        // Perform text extraction using Tesseract.js
+        Tesseract.recognize(imagePath, 'eng')
+            .then((result) => {
+                const text = result.data.text;
+                const newImage = new Image({ filename, filePath: imagePath, text });
+
+                // Create write stream to store the image in GridFS
+                const writeStream = gfs.openUploadStream(filename);
+
+                fs.createReadStream(imagePath).pipe(writeStream);
+
+                writeStream.on('finish', (file) => {
+                    newImage.save()
+                        .then(() => {
+                            console.log('Image and text saved to MongoDB');
+                            // Add the JSON response to the array
+                            responses.push({ filename, text });
+
+                            // Check if all files have been processed
+                            if (responses.length === files.length) {
+                                // Send the JSON responses
+                                res.json(responses);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error saving image and text:', error);
+                        });
+                });
+
+                writeStream.on('error', (error) => {
+                    console.error('Error storing image in GridFS:', error);
+                });
+            })
+            .catch((error) => {
+                console.error('Error extracting text from image:', error);
+            });
+    });
+});
+
+// // Define a route to retrieve the text from the database and convert it into audio
+// app.get('/audio/:id', (req, res) => {
+//     const imageId = req.params.id;
+
+//     Image.findById(imageId)
+//         .then((image) => {
+//             if (!image) {
+//                 return res.status(404).send('Image not found');
+//             }
+
+//             const text = image.text;
+
+//             deepgram.textToSpeech(text)
+//                 .then((audioBuffer) => {
+//                     const audioFilePath = `./audio/${imageId}.mp3`;
+
+//                     fs.writeFile(audioFilePath, audioBuffer, (error) => {
+//                         if (error) {
+//                             console.error('Error writing audio file:', error);
+//                             res.status(500).send('Error writing audio file');
+//                         } else {
+//                             console.log('Audio file generated successfully');
+//                             res.sendFile(audioFilePath);
+//                         }
+//                     });
+//                 })
+//                 .catch((error) => {
+//                     console.error('Error generating audio file:', error);
+//                     res.status(500).send('Error generating audio file');
+//                 });
+//         })
+//         .catch((error) => {
+//             console.error('Error retrieving image from database:', error);
+//             res.status(500).send('Error retrieving image from database');
+//         });
+// });
 
 app.listen(5000, () => console.log("Server running -> Auth + Video Streaming...."));
 
