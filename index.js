@@ -1,30 +1,28 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const loginUserDetails = require("./login");
-const createUserDetails = require('./signup');
+const createUserDetails = require("./signup");
 const app = express();
-const generateOTPValue = require('./otp/otp');
-const resetPassword = require('./resetpassword/resetpassword');
-const checkuser = require('./forgotpassword/forgotpassword');
-const middleware = require('./middleware');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const fs = require('fs');
-const Grid = require('gridfs-stream');
+const generateOTPValue = require("./otp/otp");
+const checkuser = require("./forgotpassword/forgotpassword");
+const middleware = require("./middleware");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
+const fs = require("fs");
 app.use(express.json()); // middleware
-const multer = require('multer');
-const Tesseract = require('tesseract.js');
-app.use(cors({ origin: '*', credentials: true }));
-const nodemailer = require('nodemailer');
-const Image = require('./textfromimage/imagescheema'); // Import the image schema
-const https = require('https');
-const Deepgram = require('deepgram');
-
+const multer = require("multer");
+const Tesseract = require("tesseract.js");
+app.use(cors({ origin: "*", credentials: true }));
+const nodemailer = require("nodemailer");
+const Image = require("./textfromimage/imagescheema"); // Import the image schema
 mongoose
-    .connect("mongodb+srv://haridevworld2022:merntypescriptapi@cluster0.firewrq.mongodb.net/userdata", {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
+    .connect(
+        "mongodb+srv://haridevworld2022:merntypescriptapi@cluster0.firewrq.mongodb.net/userdata",
+        {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        }
+    )
     .then(() => {
         console.log("DB connection successful");
     })
@@ -34,18 +32,18 @@ mongoose
 
 // video streaming
 const videoFileMap = {
-    "cdn": 'videos/cdn.mp4',
-    'generate-pass': 'videos/generate-pass.mp4',
-    'get-post': 'videos/get-post.mp4',
-    'index-video': 'videos/index-video.mp4',
-    'cricket': 'videos/cricket.mp4'
+    cdn: "videos/cdn.mp4",
+    "generate-pass": "videos/generate-pass.mp4",
+    "get-post": "videos/get-post.mp4",
+    "index-video": "videos/index-video.mp4",
+    cricket: "videos/cricket.mp4",
 };
 
-app.get('/videos/:filename', (req, res) => {
+app.get("/videos/:filename", (req, res) => {
     const fileName = req.params.filename;
     const filePath = videoFileMap[fileName];
     if (!filePath) {
-        return res.status(404).send('File not found');
+        return res.status(404).send("File not found");
     }
     const stat = fs.statSync(filePath);
     const fileSize = stat.size;
@@ -98,9 +96,9 @@ const transporter = nodemailer.createTransport({
     port: 587,
     secure: false,
     auth: {
-        user: 'doradla.hari@gmail.com',
-        pass: 'erkluzuuibckjyan'
-    }
+        user: "doradla.hari@gmail.com",
+        pass: "erkluzuuibckjyan",
+    },
 });
 
 // Function to send welcome email
@@ -108,52 +106,51 @@ const sendWelcomeEmail = async (email, res, userId) => {
     try {
         // saving otp in to DB
         const storeOtp = new generateOTPValue({
-            otp: otp, email:
-                email
+            otp: otp,
+            email: email,
         });
         await storeOtp.save();
         const mailOptions = {
-            from: 'haridevworld2022@gmail.com',
+            from: "haridevworld2022@gmail.com",
             to: email,
-            subject: 'Welcome to Our Application',
+            subject: "Welcome to Our Application",
             text: `Thank you for registering with our application. We are excited to have you on board! Here is your OTP: ${otp}`,
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.error('Error sending welcome email:', error);
-                return res.status(500).send('Internal server error');
+                console.error("Error sending welcome email:", error);
+                return res.status(500).send("Internal server error");
             }
             res.status(200).send(`OTP sent successfully to ${email}`);
         });
     } catch (err) {
-        console.error('Error sending welcome email:', err);
-        return res.status(500).send('Internal server error');
+        console.error("Error sending welcome email:", err);
+        return res.status(500).send("Internal server error");
     }
 };
 
 // Function to send reset password link
-const sendResetPasswordLink = async (email, userId, res,) => {
-
+const sendResetPasswordLink = async (email, userId, res) => {
     try {
         const mailOptions = {
-            from: 'haridevworld2022@gmail.com',
+            from: "haridevworld2022@gmail.com",
             to: email,
-            subject: 'Reset Password',
+            subject: "Reset Password",
             text: `Use this link to reset your password: http://mern-typescript.s3-website.ap-south-1.amazonaws.com/resetpassword/${userId},
             http://localhost:3000/resetpassword/${userId}`,
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.error('Error sending reset password email:', error);
-                return res.status(500).send('Internal server error');
+                console.error("Error sending reset password email:", error);
+                return res.status(500).send("Internal server error");
             }
             res.status(200).send(`Reset password link sent successfully to ${email}`);
         });
     } catch (err) {
-        console.error('Error sending reset password email:', err);
-        return res.status(500).send('Internal server error');
+        console.error("Error sending reset password email:", err);
+        return res.status(500).send("Internal server error");
     }
 };
 
@@ -187,8 +184,8 @@ app.post("/loginuser", async (req, res) => {
 
         let payload = {
             user: {
-                id: loggedInUserData._id
-            }
+                id: loggedInUserData._id,
+            },
         };
 
         // Generate the token
@@ -209,27 +206,41 @@ app.get("/myprofile", middleware, async (req, res) => {
     try {
         let exist = await createUserDetails.findById(req.user.id);
         if (!exist) {
-            return res.send('User not found');
+            return res.send("User not found");
         }
         res.json(exist);
     } catch (err) {
         console.log(err);
-        return res.status(500).send('Internal server error!');
+        return res.status(500).send("Internal server error!");
     }
 });
 
 // signup method
 app.post("/createuser", async (req, res) => {
-    const { firstName, lastName, email, mobileNumber, password, confirmPassword } = req.body;
+    const {
+        firstName,
+        lastName,
+        email,
+        mobileNumber,
+        password,
+        confirmPassword,
+    } = req.body;
     try {
         const exist = await createUserDetails.findOne({ email: email });
         if (exist) {
-            return res.send('User already exists');
+            return res.send("User already exists");
         }
         if (password !== confirmPassword) {
-            return res.send('Password mismatch');
+            return res.send("Password mismatch");
         }
-        const newUserData = new createUserDetails({ firstName, lastName, email, mobileNumber, password, confirmPassword });
+        const newUserData = new createUserDetails({
+            firstName,
+            lastName,
+            email,
+            mobileNumber,
+            password,
+            confirmPassword,
+        });
         await newUserData.save();
 
         // Retrieve the generated ID
@@ -237,48 +248,51 @@ app.post("/createuser", async (req, res) => {
         // Send welcome email
         sendWelcomeEmail(email, userId);
 
-        res.status(200).json({ message: 'Registration successful!', userId: userId, otp: otp });
+        res
+            .status(200)
+            .json({ message: "Registration successful!", userId: userId, otp: otp });
     } catch (err) {
-        return res.status(500).send('Internal server error!');
+        return res.status(500).send("Internal server error!");
     }
 });
 
-
-
 // OTP validation method
-app.post('/checkotp', async (req, res) => {
+app.post("/checkotp", async (req, res) => {
     const { otp } = req.body;
     try {
         let exist = await generateOTPValue.findOne({ otp: otp });
         if (!exist) {
-            return res.send('Invalid OTP');
+            return res.send("Invalid OTP");
         } else {
-            res.status(200).json({ message: "Account Verification Successfull" })
+            res.status(200).json({ message: "Account Verification Successfull" });
         }
     } catch (err) {
         console.log(err);
-        return res.status(500).send('Internal server error');
+        return res.status(500).send("Internal server error");
     }
 });
 
 // Forgot password method
-app.post('/forgotpassword', async (req, res) => {
+app.post("/forgotpassword", async (req, res) => {
     try {
         const { email } = req.body;
         const exist = await createUserDetails.findOne({ email: email });
         if (!exist) {
-            return res.send('User not found');
+            return res.send("User not found");
         } else {
             const userId = exist._id; // Retrieve the generated ID from the existing user
-            await checkuser.findOneAndUpdate({ email: email }, { email: email }, { upsert: true, new: true });
+            await checkuser.findOneAndUpdate(
+                { email: email },
+                { email: email },
+                { upsert: true, new: true }
+            );
             sendResetPasswordLink(email, userId, res); // Pass the userId to the sendResetPasswordLink function
         }
     } catch (err) {
         console.log(err);
-        return res.status(500).send('Internal server error');
+        return res.status(500).send("Internal server error");
     }
 });
-
 
 // Reset password method
 app.put("/resetpassword/:id", async (req, res) => {
@@ -305,11 +319,9 @@ app.put("/resetpassword/:id", async (req, res) => {
     }
 });
 
-
-
 // Configure multer for file upload
 const storage = multer.diskStorage({
-    destination: './uploads', // Set the destination folder to store uploaded files
+    destination: "./uploads", // Set the destination folder to store uploaded files
     filename: function (req, file, cb) {
         cb(null, file.originalname);
     },
@@ -319,18 +331,18 @@ const upload = multer({ storage: storage });
 
 // Create GridFS Bucket
 let gfs;
-mongoose.connection.once('open', () => {
+mongoose.connection.once("open", () => {
     gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: 'uploads',
+        bucketName: "uploads",
     });
 });
 
 // Set up the routes
-app.post('/upload', upload.array('image', 10), (req, res) => {
+app.post("/upload", upload.array("image", 10), (req, res) => {
     const files = req.files;
 
     if (!files) {
-        res.status(400).send('No files were uploaded.');
+        res.status(400).send("No files were uploaded.");
         return;
     }
 
@@ -342,7 +354,7 @@ app.post('/upload', upload.array('image', 10), (req, res) => {
         const filename = file.filename;
 
         // Perform text extraction using Tesseract.js
-        Tesseract.recognize(imagePath, 'eng')
+        Tesseract.recognize(imagePath, "eng")
             .then((result) => {
                 const text = result.data.text;
                 const newImage = new Image({ filename, filePath: imagePath, text });
@@ -352,10 +364,11 @@ app.post('/upload', upload.array('image', 10), (req, res) => {
 
                 fs.createReadStream(imagePath).pipe(writeStream);
 
-                writeStream.on('finish', (file) => {
-                    newImage.save()
+                writeStream.on("finish", (file) => {
+                    newImage
+                        .save()
                         .then(() => {
-                            console.log('Image and text saved to MongoDB');
+                            console.log("Image and text saved to MongoDB");
                             // Add the JSON response to the array
                             responses.push({ filename, text });
 
@@ -366,57 +379,74 @@ app.post('/upload', upload.array('image', 10), (req, res) => {
                             }
                         })
                         .catch((error) => {
-                            console.error('Error saving image and text:', error);
+                            console.error("Error saving image and text:", error);
                         });
                 });
 
-                writeStream.on('error', (error) => {
-                    console.error('Error storing image in GridFS:', error);
+                writeStream.on("error", (error) => {
+                    console.error("Error storing image in GridFS:", error);
                 });
             })
             .catch((error) => {
-                console.error('Error extracting text from image:', error);
+                console.error("Error extracting text from image:", error);
             });
     });
 });
 
-// // Define a route to retrieve the text from the database and convert it into audio
-// app.get('/audio/:id', (req, res) => {
-//     const imageId = req.params.id;
+// storing audio in db 
+const gtts = require("gtts");
+app.get("/text/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const image = await Image.findById(id);
+        const text = image.text;
 
-//     Image.findById(imageId)
-//         .then((image) => {
-//             if (!image) {
-//                 return res.status(404).send('Image not found');
-//             }
+        // Create a new instance of gtts with the desired language
+        const speech = new gtts(text, "en");
 
-//             const text = image.text;
+        // Generate a unique filename for the audio file
+        const filename = `audio_${id}.mp3`;
 
-//             deepgram.textToSpeech(text)
-//                 .then((audioBuffer) => {
-//                     const audioFilePath = `./audio/${imageId}.mp3`;
+        // Create the "audios" directory if it doesn't exist
+        const directory = "storeaudiotodb";
+        if (!fs.existsSync(directory)) {
+            fs.mkdirSync(directory);
+        }
 
-//                     fs.writeFile(audioFilePath, audioBuffer, (error) => {
-//                         if (error) {
-//                             console.error('Error writing audio file:', error);
-//                             res.status(500).send('Error writing audio file');
-//                         } else {
-//                             console.log('Audio file generated successfully');
-//                             res.sendFile(audioFilePath);
-//                         }
-//                     });
-//                 })
-//                 .catch((error) => {
-//                     console.error('Error generating audio file:', error);
-//                     res.status(500).send('Error generating audio file');
-//                 });
-//         })
-//         .catch((error) => {
-//             console.error('Error retrieving image from database:', error);
-//             res.status(500).send('Error retrieving image from database');
-//         });
-// });
+        // Save the audio file inside the "audios" directory
+        speech.save(`${directory}/${filename}`, async function (err) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({ error: "An error occurred while generating the audio file" });
+            } else {
+                // Read the audio file as binary data
+                const audioData = fs.readFileSync(`${directory}/${filename}`);
 
-app.listen(5000, () => console.log("Server running -> Auth + Video Streaming...."));
+                // Save the audio data to the database
+                image.audio = audioData; // Assuming your Image model has an 'audio' field
+
+                await image.save();
+
+                // Set the appropriate headers for the audio response
+                res.setHeader("Content-Type", "application/octet-stream");
+                res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+
+                // Send the audio data as the response
+                res.status(200).json({ audioData });
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "An error occurred while retrieving the image text" });
+    }
+});
+
+
+
+
+
+app.listen(5000, () =>
+    console.log("Server running -> Auth + Video Streaming....")
+);
 
 module.exports = app;
